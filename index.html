@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>attendancenine</title>
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:title" content="attendancenine" />
+  <meta property="og:site_name" content="attendancenine" />
+  <meta property="og:description" content="Attendance System" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://attendancenine9.vercel.app/" />
+  <meta property="og:image" content="/social-cover.png" />
+
+</head>
+<script type="text/javascript">
+  (function (l) {
+    // Check if the search string starts with `/?`
+    if (l.search[1] === "/") {
+      // Process the search string
+      var decoded = l.search
+        .slice(1) // Remove the leading "?"
+        .split("&") // Split parameters by "&"
+        .map(function (s) {
+          // Replace a custom "~and~" encoding with a real "&"
+          return s.replace(/~and~/g, "&");
+        })
+        .join("?"); // Join the parts with "?"
+
+      // Replace the current URL in history
+      window.history.replaceState(
+        null,
+        null,
+        // Get pathname (e.g., "/page/"), remove trailing slash,
+        // and append the decoded path/query string and hash
+        l.pathname.slice(0, -1) + decoded + l.hash
+      );
+    }
+  })(window.location);
+</script>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>
