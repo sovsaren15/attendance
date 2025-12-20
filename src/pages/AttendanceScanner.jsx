@@ -2,6 +2,8 @@ import { useRef, useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Camera, ArrowLeft, LogIn, LogOut, Clock } from "lucide-react"
 
+const API_BASE_URL = "https://express-api-eight-brown.vercel.app"
+
 export default function AttendanceScanner() {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -75,7 +77,7 @@ export default function AttendanceScanner() {
     console.log(`Sending ${endpoint} request. Image size: ${capturedImage.length}`)
 
     try {
-      const response = await fetch(`http://localhost:5000/employee/${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/employee/${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -111,7 +113,7 @@ export default function AttendanceScanner() {
         startCamera()
       }
     } catch (error) {
-      console.error("Attendance error:", error)
+      console.error(`Attendance error (${API_BASE_URL}):`, error)
       alert("Error: Unable to connect to server")
     } finally {
       setIsLoading(false)
