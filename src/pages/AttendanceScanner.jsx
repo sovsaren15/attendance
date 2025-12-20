@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Camera, LogIn, LogOut, Clock, RefreshCw, CheckCircle } from "lucide-react"
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://express-api-eight-brown.vercel.app"
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://express-api-eight-brown.vercel.app").replace(/\/$/, "")
 
 export default function AttendanceScanner() {
   const videoRef = useRef(null)
