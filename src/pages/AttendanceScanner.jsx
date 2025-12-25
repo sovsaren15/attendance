@@ -4,6 +4,21 @@ import { Camera, LogIn, LogOut, Clock, RefreshCw, CheckCircle } from "lucide-rea
 import { API_BASE_URL } from "../services/api"
 
 
+// Helper: Calculate distance between two coordinates in meters (Haversine formula)
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 export default function AttendanceScanner() {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
@@ -14,6 +29,14 @@ export default function AttendanceScanner() {
   const navigate = useNavigate()
 
   const MAIN_COLOR = "#3e6268"
+
+  // Company Location Configuration
+  // TODO: Replace with your actual company coordinates
+  const COMPANY_LOCATION = {
+    lat: 13.374898998908971,
+    lng: 103.84239778000381,
+    radius: 500 // Allowed radius in meters
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("authToken")
@@ -28,7 +51,10 @@ export default function AttendanceScanner() {
   }, [])
 
   const startCamera = async () => {
+    setIsLoading(true)
     try {
+      await verifyLocation()
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: "user", 
@@ -41,7 +67,9 @@ export default function AttendanceScanner() {
         setIsStreaming(true)
       }
     } catch (error) {
-      alert("Camera Error: Unable to access camera. Please allow camera permissions.")
+      alert(error.message || "Camera Error: Unable to access camera. Please allow camera permissions.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -75,10 +103,49 @@ export default function AttendanceScanner() {
     }
   }
 
+  const verifyLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by your browser"));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const distance = calculateDistance(
+            position.coords.latitude,
+            position.coords.longitude,
+            COMPANY_LOCATION.lat,
+            COMPANY_LOCATION.lng
+          );
+          
+          if (distance <= COMPANY_LOCATION.radius) {
+            resolve(true);
+          } else {
+            reject(new Error(`You are ${Math.round(distance)}m away. Please be within ${COMPANY_LOCATION.radius}m of the office.`));
+          }
+        },
+        (error) => {
+          reject(new Error("Unable to retrieve location. Please enable GPS."));
+        },
+        { enableHighAccuracy: true }
+      );
+    });
+  };
+
   const handleCheckIn = async () => {
     if (!capturedImage) return
 
     setIsLoading(true)
+    
+    try {
+      await verifyLocation();
+    } catch (error) {
+      alert(error.message);
+      setIsLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem("authToken")
     if (!token) {
       navigate("/")
@@ -225,10 +292,15 @@ export default function AttendanceScanner() {
             {!isStreaming && !capturedImage && (
               <button
                 onClick={startCamera}
-                className="w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-[#3e6268] text-white font-semibold shadow-lg shadow-[#3e6268]/20 hover:bg-[#324f54] active:scale-95 transition-all"
+                disabled={isLoading}
+                className={`w-full h-12 flex items-center justify-center gap-2 rounded-xl bg-[#3e6268] text-white font-semibold shadow-lg shadow-[#3e6268]/20 hover:bg-[#324f54] active:scale-95 transition-all ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
               >
-                <Camera className="w-5 h-5" />
-                Open Camera
+                {isLoading ? "Checking Location..." : (
+                  <>
+                    <Camera className="w-5 h-5" />
+                    Open Camera
+                  </>
+                )}
               </button>
             )}
 
