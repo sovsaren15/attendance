@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { API_BASE_URL } from "../services/api"
 
 const AttendanceRecord = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([])
@@ -19,8 +20,7 @@ const AttendanceRecord = () => {
   const fetchAttendanceHistory = async () => {
     try {
       const token = localStorage.getItem("authToken")
-      const API_URL = (import.meta.env.VITE_API_URL || "https://express-api-eight-brown.vercel.app").replace(/\/$/, "")
-      const response = await fetch(`${API_URL}/employee/attendance-history`, {
+      const response = await fetch(`${API_BASE_URL}/employee/attendance-history`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

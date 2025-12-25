@@ -1,8 +1,8 @@
 import { useRef, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Camera, LogIn, LogOut, Clock, RefreshCw, CheckCircle } from "lucide-react"
+import { API_BASE_URL } from "../services/api"
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://express-api-eight-brown.vercel.app").replace(/\/$/, "")
 
 export default function AttendanceScanner() {
   const videoRef = useRef(null)
@@ -22,13 +22,18 @@ export default function AttendanceScanner() {
     }
   }, [navigate])
 
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => stopCamera()
+  }, [])
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
           facingMode: "user", 
-          width: { ideal: 480 }, 
-          height: { ideal: 360 } 
+          width: { ideal: 320 }, 
+          height: { ideal: 240 } 
         },
       })
       if (videoRef.current) {
@@ -54,8 +59,8 @@ export default function AttendanceScanner() {
       const video = videoRef.current
       if (video.videoWidth === 0 || video.videoHeight === 0) return
 
-      // Optimized resolution: 400px balances speed (upload size) and accuracy
-      const targetWidth = 400
+      // Optimized resolution: 320px for maximum speed
+      const targetWidth = 320
       const aspectRatio = video.videoHeight / video.videoWidth
       canvas.width = targetWidth
       canvas.height = targetWidth * aspectRatio
@@ -63,9 +68,9 @@ export default function AttendanceScanner() {
       const ctx = canvas.getContext("2d", { willReadFrequently: true })
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        const imageData = canvas.toDataURL("image/jpeg", 0.5)
+        const imageData = canvas.toDataURL("image/jpeg", 0.3)
         setCapturedImage(imageData)
-        stopCamera()
+        // Keep camera running for faster retries
       }
     }
   }
@@ -107,14 +112,14 @@ export default function AttendanceScanner() {
       }
 
       if (response.ok) {
+        stopCamera()
         alert(`${checkInType === "checkin" ? "Check-In" : "Check-Out"} Successful!`)
         setTimeout(() => {
           navigate("/records")
-        }, 1000)
+        }, 500)
       } else {
         alert(`Failed: ${data.error || data.message || "Verification failed"}`)
         setCapturedImage(null)
-        startCamera()
       }
     } catch (error) {
       console.error(error)
@@ -126,7 +131,6 @@ export default function AttendanceScanner() {
 
   const retake = () => {
     setCapturedImage(null)
-    startCamera()
   }
 
   return (

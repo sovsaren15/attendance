@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { API_BASE_URL, employeeAPI } from '../services/api'
 
 const EmployeeList = () => {
   const [employees, setEmployees] = useState([])
@@ -11,8 +12,7 @@ const EmployeeList = () => {
     const fetchEmployees = async () => {
       try {
         const token = localStorage.getItem("authToken")
-        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000"
-        const response = await fetch(`${API_URL}/admin/employees`, {
+        const response = await fetch(`${API_BASE_URL}/admin/employees`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

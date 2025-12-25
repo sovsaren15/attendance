@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { Camera, ArrowLeft, CheckCircle, Upload } from "lucide-react"
 import toast from "react-hot-toast"
+import { API_BASE_URL } from "../services/api"
 
 export default function EmployeeRegistration() {
   const videoRef = useRef(null)
@@ -113,7 +114,7 @@ export default function EmployeeRegistration() {
       if (!imageBase64) throw new Error("Invalid image data")
 
       // 1. Create Employee
-      const createResponse = await fetch("http://localhost:5000/admin/employees", {
+      const createResponse = await fetch(`${API_BASE_URL}/admin/employees`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

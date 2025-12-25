@@ -1,16 +1,28 @@
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://express-api-eight-brown.vercel.app").replace(/\/$/, "");
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://attendancenine-api.onrender.com").replace(/\/$/, "");
 
 
 // Auth API calls
 export const authAPI = {
   login: async (credentials) => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${API_BASE_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(credentials),
     });
+    if (!response.ok) {
+      let errorMessage = response.statusText;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorMessage;
+      } catch (e) {
+        // If response is not JSON, keep default statusText
+      }
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      throw error;
+    }
     return response.json();
   }
 };
