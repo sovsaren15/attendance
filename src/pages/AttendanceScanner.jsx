@@ -33,8 +33,8 @@ export default function AttendanceScanner() {
   // Company Location Configuration
   // TODO: Replace with your actual company coordinates
   const COMPANY_LOCATION = {
-    lat: 13.374898998908971,
-    lng: 103.84239778000381,
+    lat: 13.374924929819283,
+    lng: 103.84240484553332,
     radius: 500 // Allowed radius in meters
   };
 
