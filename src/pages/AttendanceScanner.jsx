@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Camera, LogIn, LogOut, Clock, RefreshCw, CheckCircle } from "lucide-react"
+import { Camera, LogIn, LogOut, Clock, RefreshCw, CheckCircle, ArrowLeft } from "lucide-react"
 import { API_BASE_URL } from "../services/api"
 
 
@@ -26,17 +26,10 @@ export default function AttendanceScanner() {
   const [isLoading, setIsLoading] = useState(false)
   const [capturedImage, setCapturedImage] = useState(null)
   const [checkInType, setCheckInType] = useState("checkin")
+  const [companyLocation, setCompanyLocation] = useState(null)
   const navigate = useNavigate()
 
   const MAIN_COLOR = "#3e6268"
-
-  // Company Location Configuration
-  // TODO: Replace with your actual company coordinates
-  const COMPANY_LOCATION = {
-    lat: 13.374924929819283,
-    lng: 103.84240484553332,
-    radius: 500 // Allowed radius in meters
-  };
 
   useEffect(() => {
     const token = localStorage.getItem("authToken")
@@ -44,6 +37,32 @@ export default function AttendanceScanner() {
       navigate("/")
     }
   }, [navigate])
+
+  // Fetch Company Settings from API
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const token = localStorage.getItem("authToken")
+        const response = await fetch(`${API_BASE_URL}/admin/settings`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (response.ok) {
+          const result = await response.json()
+          const data = result.data || result
+          if (data.office_latitude && data.office_longitude) {
+            setCompanyLocation({
+              lat: parseFloat(data.office_latitude),
+              lng: parseFloat(data.office_longitude),
+              radius: parseFloat(data.office_radius_meters) || 500
+            })
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error)
+      }
+    }
+    fetchSettings()
+  }, [])
 
   // Cleanup camera stream on unmount
   useEffect(() => {
@@ -105,6 +124,11 @@ export default function AttendanceScanner() {
 
   const verifyLocation = () => {
     return new Promise((resolve, reject) => {
+      if (!companyLocation) {
+        reject(new Error("Company location settings are not loaded yet. Please try again in a moment."))
+        return
+      }
+
       if (!navigator.geolocation) {
         reject(new Error("Geolocation is not supported by your browser"));
         return;
@@ -115,14 +139,14 @@ export default function AttendanceScanner() {
           const distance = calculateDistance(
             position.coords.latitude,
             position.coords.longitude,
-            COMPANY_LOCATION.lat,
-            COMPANY_LOCATION.lng
+            companyLocation.lat,
+            companyLocation.lng
           );
           
-          if (distance <= COMPANY_LOCATION.radius) {
+          if (distance <= companyLocation.radius) {
             resolve(true);
           } else {
-            reject(new Error(`You are ${Math.round(distance)}m away. Please be within ${COMPANY_LOCATION.radius}m of the office.`));
+            reject(new Error(`You are ${Math.round(distance)}m away. Please be within ${companyLocation.radius}m of the office.`));
           }
         },
         (error) => {
@@ -182,7 +206,7 @@ export default function AttendanceScanner() {
         stopCamera()
         alert(`${checkInType === "checkin" ? "Check-In" : "Check-Out"} Successful!`)
         setTimeout(() => {
-          navigate("/records")
+          navigate("/home")
         }, 500)
       } else {
         alert(`Failed: ${data.error || data.message || "Verification failed"}`)
@@ -204,9 +228,14 @@ export default function AttendanceScanner() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-6 px-4 md:justify-center">
       <main className="w-full max-w-md mx-auto space-y-6">
         
+
+
         {/* Header Section */}
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold text-[#3e6268]">
+          <h1 
+            onClick={() => navigate("/home")}
+            className="text-3xl font-bold text-[#3e6268] cursor-pointer hover:opacity-80 transition-opacity"
+          >
             Attendance
           </h1>
           <p className="text-gray-500 text-sm">
@@ -258,7 +287,7 @@ export default function AttendanceScanner() {
           </div>
 
           {/* Video Area */}
-          <div className="relative bg-gray-900 aspect-[4/3] w-full flex items-center justify-center overflow-hidden">
+          <div className="relative bg-gray-900 h-96 w-full flex items-center justify-center overflow-hidden">
             {!isStreaming && !capturedImage && (
               <div className="text-center p-8 space-y-4">
                 <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto">
@@ -297,7 +326,7 @@ export default function AttendanceScanner() {
               >
                 {isLoading ? "Checking Location..." : (
                   <>
-                    <Camera className="w-5 h-5" />
+                    <Camera className="w-5 h-9" />
                     Open Camera
                   </>
                 )}
@@ -333,7 +362,7 @@ export default function AttendanceScanner() {
                     <span className="animate-pulse">Verifying...</span>
                   ) : (
                     <>
-                      <CheckCircle className="w-5 h-5" />
+                      <CheckCircle className="w-5 h-9" />
                       Confirm {checkInType === "checkin" ? "Check In" : "Check Out"}
                     </>
                   )}
@@ -342,12 +371,13 @@ export default function AttendanceScanner() {
                   onClick={retake}
                   className="w-full h-12 flex items-center justify-center gap-2 rounded-xl border-2 border-gray-100 text-gray-600 font-semibold hover:bg-gray-50 active:scale-95 transition-all"
                 >
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="w-4 h-9" />
                   Retake Photo
                 </button>
               </div>
             )}
           </div>
+          
         </div>
         
       </main>

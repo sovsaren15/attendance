@@ -11,6 +11,8 @@ const Dashboard = React.lazy(() => import("./pages/Dashboard.jsx"));
 const TopPerformers = React.lazy(() => import("./pages/TopPerformers.jsx"));
 const AttendancePage = React.lazy(() => import("./pages/AttendancePage.jsx"));
 const Login = React.lazy(() => import("./pages/Login.jsx"));
+const Settings = React.lazy(() => import("./pages/Settings.jsx"));
+const Home = React.lazy(() => import("./pages/Home.jsx"));
 
 function App() {
   return (
@@ -21,6 +23,7 @@ function App() {
         <Route path="/AttendanceScanner" element={<AttendanceScanner />} />
         <Route path="/records" element={<AttendanceRecord />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/home" element={<Home />} />
 
         {/* Private Routes */}
         <Route element={<PrivateRoute />}>
@@ -30,6 +33,7 @@ function App() {
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/top" element={<TopPerformers />} />
             <Route path="/attendance" element={<AttendancePage />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>
 
