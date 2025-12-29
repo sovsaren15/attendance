@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../services/api";
 
+const getCambodiaTime = () => {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Phnom_Penh" }));
+};
+
 const Home = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,7 +14,7 @@ const Home = () => {
   // Default to 'week'
   const [filterType, setFilterType] = useState("week");
   const [employeeName, setEmployeeName] = useState("You");
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(getCambodiaTime());
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState("--:--");
   const [checkOutTime, setCheckOutTime] = useState("--:--");
@@ -29,7 +33,7 @@ const Home = () => {
   }, [navigate, filterType]);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setCurrentTime(getCambodiaTime()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -81,7 +85,7 @@ const Home = () => {
           statusTime: record.status_time,
         }));
 
-        const todayStr = new Date().toDateString();
+        const todayStr = getCambodiaTime().toDateString();
         const todayRecord = mappedData.find(
           (record) => new Date(record.checkIn).toDateString() === todayStr
         );
@@ -117,7 +121,7 @@ const Home = () => {
         let lateCount = 0;
         let earlyCount = 0;
 
-        const now = new Date();
+        const now = getCambodiaTime();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
         mappedData.forEach((record) => {
