@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { dashboardAPI } from '../services/api';
+import { dashboardAPI, formatDateTime, formatTime } from '../services/api';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
@@ -62,13 +62,13 @@ const Dashboard = () => {
                   <small style={{ color: '#6c757d' }}>{log.employees?.employee_id}</small>
                 </td>
                 <td style={{ padding: '12px' }}>
-                  {new Date(log.check_in_time).toLocaleDateString()}
+                  {formatDateTime(log.check_in_time).split(',')[0]}
                 </td>
                 <td style={{ padding: '12px' }}>
-                  {new Date(log.check_in_time).toLocaleTimeString()}
+                  {formatTime(log.check_in_time)}
                 </td>
                 <td style={{ padding: '12px' }}>
-                  {log.check_out_time ? new Date(log.check_out_time).toLocaleTimeString() : '-'}
+                  {log.check_out_time ? formatTime(log.check_out_time) : '-'}
                 </td>
               </tr>
             ))}

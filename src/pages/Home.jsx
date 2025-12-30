@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE_URL } from "../services/api";
+import { API_BASE_URL, getCambodiaTime, formatDateTime, formatTime } from "../services/api";
 
 const Home = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
@@ -10,7 +10,7 @@ const Home = () => {
   // Default to 'week'
   const [filterType, setFilterType] = useState("week");
   const [employeeName, setEmployeeName] = useState("You");
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(getCambodiaTime());
   
   // Dashboard Status States
   const [isClockedIn, setIsClockedIn] = useState(false);
@@ -31,18 +31,14 @@ const Home = () => {
   }, [navigate, filterType]);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const timer = setInterval(() => setCurrentTime(getCambodiaTime()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   // Helper to safely format time strings
   const formatTimeStr = (dateString) => {
     if (!dateString) return "--:--";
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
+    return formatTime(dateString) || "--:--";
   };
 
   const fetchAttendanceHistory = async (range) => {
@@ -77,9 +73,9 @@ const Home = () => {
         }
 
         const mappedData = (result.data || []).map((record) => {
-          // Backend stores Cambodia time as UTC. Strip 'Z' to treat it as local time.
-          const checkInLocal = record.check_in_time ? record.check_in_time.replace("Z", "") : null;
-          const checkOutLocal = record.check_out_time ? record.check_out_time.replace("Z", "") : null;
+          // Keep the UTC string (Shifted Time) as is. We will format it using UTC methods.
+          const checkInLocal = record.check_in_time;
+          const checkOutLocal = record.check_out_time;
 
           return {
             id: record.id,
@@ -95,10 +91,11 @@ const Home = () => {
         });
 
         // --- FIX LOGIC HERE ---
-        // Find today's record based on local date string
-        const todayStr = new Date().toDateString();
+        // Find today's record based on Cambodia Date (YYYY-MM-DD)
+        const todayStr = getCambodiaTime().toISOString().split('T')[0];
+        
         const todayRecord = mappedData.find(
-          (record) => record.checkIn && new Date(record.checkIn).toDateString() === todayStr
+          (record) => record.checkIn && record.checkIn.startsWith(todayStr)
         );
 
         if (todayRecord) {
@@ -131,14 +128,14 @@ const Home = () => {
         let lateCount = 0;
         let earlyCount = 0;
 
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const now = getCambodiaTime();
+        const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
         mappedData.forEach((record) => {
           const recordDate = new Date(record.checkIn);
           if (recordDate >= startOfMonth && recordDate <= now) {
             if (record.status === 'present') {
-              const dateStr = recordDate.toDateString();
+              const dateStr = recordDate.toISOString().split('T')[0];
               if (!uniqueDates.has(dateStr)) {
                 uniqueDates.add(dateStr);
                 if (record.timeStatus === 'Late') {
@@ -186,8 +183,8 @@ const Home = () => {
     }
 
     const date = new Date(checkInTime);
-    const hour = date.getHours();
-    const minute = date.getMinutes();
+    const hour = date.getUTCHours(); // Use UTC because it is Shifted Time
+    const minute = date.getUTCMinutes();
     
     // Simple logic fallback if backend doesn't provide statusTime
     if (hour < 8) return "Early";
@@ -246,7 +243,7 @@ const Home = () => {
                     {formatDate(currentTime)}
                   </p>
                   <p className="text-teal-100 opacity-80 text-sm font-medium mt-1">
-                    {currentTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true })}
+                    {currentTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' })}
                   </p>
                 </div>
                 <div
