@@ -21,6 +21,29 @@ const AttendanceRecord = () => {
     }
   }, [navigate, filterType])
 
+  // --- HELPER: Force Timezone to Cambodia ---
+  const formatCambodiaTime = (dateString, options = {}) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      timeZone: 'UTC',
+      hour12: true,
+      hour: '2-digit',
+      minute: '2-digit',
+      ...options
+    });
+  };
+
+  const formatCambodiaDate = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      timeZone: 'UTC',
+      month: 'short',
+      day: 'numeric',
+      weekday: 'short'
+    });
+  };
+
   const fetchAttendanceHistory = async (range) => {
     setLoading(true)
     try {
@@ -36,12 +59,7 @@ const AttendanceRecord = () => {
       try {
         result = await response.json()
       } catch (err) {
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error("Attendance endpoint not found (404). Check backend routes.")
-          }
-          throw new Error(`HTTP error! Status: ${response.status}`)
-        }
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`)
         throw new Error("Invalid JSON response")
       }
 
@@ -51,6 +69,7 @@ const AttendanceRecord = () => {
           employeeName: result.employee ? `${result.employee.first_name} ${result.employee.last_name}` : "You",
           checkIn: record.check_in_time,
           checkOut: record.check_out_time,
+          // Calculate status based on specific Cambodia time, not browser local time
           timeStatus: determineTimeStatus(record.check_in_time),
           status: record.status,
         }))
@@ -69,11 +88,16 @@ const AttendanceRecord = () => {
   }
 
   const determineTimeStatus = (checkInTime) => {
-    if (!checkInTime) return "N/A"
-    const date = new Date(checkInTime)
-    const hour = date.getHours()
-    const minute = date.getMinutes()
-    return hour < 9 || (hour === 9 && minute <= 15) ? "On Time" : "Late"
+    if (!checkInTime) return "N/A";
+    
+    const date = new Date(checkInTime);
+    const hour = date.getUTCHours();
+    const minute = date.getUTCMinutes();
+
+    // Logic: Late if after 9:15 AM
+    if (hour < 9) return "On Time";
+    if (hour === 9 && minute <= 15) return "On Time";
+    return "Late";
   }
 
   const getInitials = (name) => {
@@ -94,17 +118,17 @@ const AttendanceRecord = () => {
           {/* Left Side Group: Logo | Divider | Text */}
           <div className="flex flex-col md:flex-row items-center ">
             
-            {/* Logo (Restored) */}
-            <div className=" p-2 ">
-               {/* <Link to="/">
+            {/* Logo */}
+            <div className="p-2">
+               <Link to="/">
                  <img src="/attendance_logo.png" alt="Logo" style={{width:180}} className="w-20 md:w-24 h-auto" />
-               </Link> */}
+               </Link>
             </div>
 
-            {/* Vertical Line (Hidden on Mobile, Visible on Desktop) */}
-            <div className='hidden md:block w-px h-12 bg-white/20'></div>
+            {/* Vertical Line */}
+            <div className='hidden md:block w-px h-12 bg-white/20 mx-4'></div>
 
-            {/* Text Title (Centered on Mobile via Parent Flex) */}
+            {/* Text Title */}
             <div>
               <h1 className='text-2xl md:text-3xl font-bold text-white'>Attendance Records</h1>
               <p className='text-white/70 text-sm'>Real-time employee tracking dashboard</p>
@@ -126,7 +150,6 @@ const AttendanceRecord = () => {
                         <option value="year" className="bg-[#2d3e50] text-white py-2">This Year</option>
                     </select>
                     
-                    {/* Custom Arrow Icon */}
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-white">
                         <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
@@ -163,7 +186,7 @@ const AttendanceRecord = () => {
             </div>
           ) : attendanceRecords && attendanceRecords.length > 0 ? (
             <div>
-              {/* --- DESKTOP TABLE (Hidden on Mobile) --- */}
+              {/* --- DESKTOP TABLE --- */}
               <div className="hidden md:block overflow-x-auto">
                 <div className="min-w-[768px]">
                   {/* Table Header */}
@@ -187,7 +210,7 @@ const AttendanceRecord = () => {
                         <div className="grid grid-cols-6 gap-4 items-center">
                           {/* Date Column */}
                           <div className="text-white/80 font-medium text-sm">
-                            {record.checkIn ? new Date(record.checkIn).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' }) : 'N/A'}
+                            {formatCambodiaDate(record.checkIn)}
                           </div>
 
                           {/* Employee Name */}
@@ -201,14 +224,14 @@ const AttendanceRecord = () => {
                           {/* Check In */}
                           <div>
                             <div className={`text-sm font-semibold ${record.checkIn ? 'text-emerald-400' : 'text-white/50'}`}>
-                              {record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "N/A"}
+                              {record.checkIn ? formatCambodiaTime(record.checkIn) : "N/A"}
                             </div>
                           </div>
 
                           {/* Check Out */}
                           <div>
                             <div className={`text-sm font-semibold ${record.checkOut ? 'text-orange-400' : 'text-white/50'}`}>
-                              {record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "Active"}
+                              {record.checkOut ? formatCambodiaTime(record.checkOut) : "Active"}
                             </div>
                           </div>
 
@@ -238,7 +261,7 @@ const AttendanceRecord = () => {
                 </div>
               </div>
 
-              {/* --- MOBILE CARDS (Hidden on Desktop) --- */}
+              {/* --- MOBILE CARDS --- */}
               <div className="block md:hidden">
                 <div className="px-4 py-4 space-y-4"> 
                   {attendanceRecords.map((record, index) => (
@@ -246,7 +269,7 @@ const AttendanceRecord = () => {
                       
                       {/* Date Header for Mobile Card */}
                       <div className="text-xs text-white/50 mb-2 uppercase tracking-wider font-bold">
-                        {record.checkIn ? new Date(record.checkIn).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : ''}
+                        {formatCambodiaDate(record.checkIn)}
                       </div>
 
                       {/* Card Header */}
@@ -274,14 +297,14 @@ const AttendanceRecord = () => {
                         <div>
                           <div className="text-white/50 text-xs mb-1">Check In</div>
                           <div className={`font-semibold ${record.checkIn ? 'text-emerald-400' : 'text-white/50'}`}>
-                            {record.checkIn ? new Date(record.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "N/A"}
+                            {record.checkIn ? formatCambodiaTime(record.checkIn) : "N/A"}
                           </div>
                         </div>
                         {/* Check Out */}
                         <div>
                           <div className="text-white/50 text-xs mb-1">Check Out</div>
                           <div className={`font-semibold ${record.checkOut ? 'text-orange-400' : 'text-white/50'}`}>
-                            {record.checkOut ? new Date(record.checkOut).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "Active"}
+                            {record.checkOut ? formatCambodiaTime(record.checkOut) : "Active"}
                           </div>
                         </div>
                         {/* Time Status */}
