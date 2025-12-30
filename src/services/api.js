@@ -1,5 +1,5 @@
 // export const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://attendancenine-api.onrender.com/").replace(/\/$/, "");
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || "https://attendancenine-api.onrender.com/").replace(/\/$/, "");
 // Helper to get current Cambodia Time (matches backend logic)
 export const getCambodiaTime = () => {
   const now = new Date();
