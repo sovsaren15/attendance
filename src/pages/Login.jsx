@@ -19,6 +19,7 @@ const Login = () => {
       // The backend returns 'access_token' and user data including 'is_admin'
       if (response.token) {
         localStorage.setItem('authToken', response.token)
+        localStorage.setItem('isAdmin', response.employee?.is_admin)
         toast.success('Login successful! Redirecting...')
 
         // Check if the user is an admin and navigate accordingly
@@ -32,7 +33,7 @@ const Login = () => {
         throw new Error('Authentication failed, no token received.')
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Login failed. Please check your credentials.'
+      const errorMessage = error.message || 'Login failed. Please check your credentials.'
       toast.error(errorMessage)
       console.error('Login error:', error)
     } finally {

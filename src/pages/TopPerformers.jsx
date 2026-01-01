@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { User } from "lucide-react"
+import { dashboardAPI } from "../services/api"
 
 const TopPerformers = () => {
   const [data, setData] = useState(null)
@@ -9,14 +10,8 @@ const TopPerformers = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem("authToken")
-        const response = await fetch("http://localhost:5000/admin/top-performers", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        const result = await response.json()
-        if (response.ok && result.success) {
+        const result = await dashboardAPI.getTopPerformers()
+        if (result.success) {
           setData(result)
         } else {
           throw new Error("Failed to fetch top performers data")

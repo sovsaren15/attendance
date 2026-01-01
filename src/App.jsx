@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, Outlet } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 
 const PrivateRoute = React.lazy(() => import("./components/PrivateRoute.jsx"));
@@ -14,6 +14,19 @@ const Login = React.lazy(() => import("./pages/Login.jsx"));
 const Settings = React.lazy(() => import("./pages/Settings.jsx"));
 const Home = React.lazy(() => import("./pages/Home.jsx"));
 
+const AdminGuard = () => {
+  const token = localStorage.getItem("authToken");
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
+
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
+  if (!isAdmin) {
+    return <Navigate to="/home" replace />;
+  }
+  return <Outlet />;
+};
+
 function App() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
@@ -26,7 +39,7 @@ function App() {
         <Route path="/home" element={<Home />} />
 
         {/* Private Routes */}
-        <Route element={<PrivateRoute />}>
+        <Route element={<AdminGuard />}>
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/register" element={<EmployeeRegistration />} />

@@ -14,6 +14,7 @@ const AttendancePage = () => {
     const fetchAllAttendance = async () => {
       try {
         const result = await dashboardAPI.getAllAttendanceHistory()
+        if (result.error) throw new Error(result.error)
         if (result.data) {
           const mappedData = result.data.map((record) => ({
             id: record.id,
