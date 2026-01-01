@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE_URL, getCambodiaTime, formatDateTime, formatTime } from "../services/api";
+import { API_BASE_URL, formatTime } from "../services/api";
 
 const Home = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Default to 'week'
   const [filterType, setFilterType] = useState("week");
   const [employeeName, setEmployeeName] = useState("You");
-  const [currentTime, setCurrentTime] = useState(getCambodiaTime());
   
-  // Dashboard Status States
+  // 1. Use standard new Date() here. Do not use getCambodiaTime() for the ticking clock.
+  // This prevents "Double Shifting" the timezone.
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [checkInTime, setCheckInTime] = useState("--:--");
   const [checkOutTime, setCheckOutTime] = useState("--:--");
@@ -30,12 +31,12 @@ const Home = () => {
     }
   }, [navigate, filterType]);
 
+  // 2. Update with standard date every second
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(getCambodiaTime()), 1000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Helper to safely format time strings
   const formatTimeStr = (dateString) => {
     if (!dateString) return "--:--";
     return formatTime(dateString) || "--:--";
@@ -73,7 +74,6 @@ const Home = () => {
         }
 
         const mappedData = (result.data || []).map((record) => {
-          // Keep the UTC string (Shifted Time) as is. We will format it using UTC methods.
           const checkInLocal = record.check_in_time;
           const checkOutLocal = record.check_out_time;
 
@@ -90,31 +90,25 @@ const Home = () => {
           };
         });
 
-        // --- FIX LOGIC HERE ---
-        // Find today's record based on Cambodia Date (YYYY-MM-DD)
-        const todayStr = getCambodiaTime().toISOString().split('T')[0];
+        // Use strict Cambodia date string for comparing today's records
+        const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' }); // YYYY-MM-DD
         
         const todayRecord = mappedData.find(
           (record) => record.checkIn && record.checkIn.startsWith(todayStr)
         );
 
         if (todayRecord) {
-          // 1. Set Check In Time
           setCheckInTime(formatTimeStr(todayRecord.checkIn));
 
-          // 2. Set Check Out Time (Logic: if null, show --:--)
           if (todayRecord.checkOut) {
             setCheckOutTime(formatTimeStr(todayRecord.checkOut));
-            setIsClockedIn(false); // Finished for the day
+            setIsClockedIn(false);
           } else {
             setCheckOutTime("--:--");
-            setIsClockedIn(true); // Still working
+            setIsClockedIn(true);
           }
-
-          // 3. Set Status
           setTimeStatus(todayRecord.timeStatus || "Present");
         } else {
-          // No record for today found yet
           setIsClockedIn(false);
           setTimeStatus("Absent");
           setCheckInTime("--:--");
@@ -128,7 +122,8 @@ const Home = () => {
         let lateCount = 0;
         let earlyCount = 0;
 
-        const now = getCambodiaTime();
+        // Current time for stats calculation
+        const now = new Date();
         const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
         mappedData.forEach((record) => {
@@ -167,11 +162,13 @@ const Home = () => {
     }
   };
 
+  // 3. Helper to format Date in Cambodia Timezone
   const formatDate = (date) => {
     return date.toLocaleDateString("en-US", {
       weekday: "long",
       day: "numeric",
       month: "long",
+      timeZone: "Asia/Phnom_Penh",
     });
   };
 
@@ -183,23 +180,20 @@ const Home = () => {
     }
 
     const date = new Date(checkInTime);
-    const hour = date.getUTCHours(); // Use UTC because it is Shifted Time
+    const hour = date.getUTCHours();
     const minute = date.getUTCMinutes();
     
-    // Simple logic fallback if backend doesn't provide statusTime
     if (hour < 8) return "Early";
     return (hour > 8 || (hour === 8 && minute > 15)) ? "Late" : "On Time";
   };
 
   return (
     <div className="min-h-screen bg-slate-50 relative overflow-hidden text-slate-800">
-      {/* Background Decorative Blobs */}
       <div className="absolute top-[-10%] right-[-5%] w-96 h-96 bg-[#3e6268] rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
       <div className="absolute bottom-[-10%] left-[-5%] w-96 h-96 bg-teal-400 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
 
       <div className="max-w-5xl mx-auto px-4 py-8 relative z-10">
         
-        {/* Header Section */}
         <div className="absolute top-[-6%] right-[-20%] p-4 opacity-10 pointer-events-none rotate-16 opacity-0.1">
           <svg className="w-56 h-56 opacity-30" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
@@ -207,7 +201,6 @@ const Home = () => {
         </div>
         <header className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
           <div className="items-center gap-4">
-            {/* Logo Image */}
             <img
               src="/attendancenine-color.png"
               className="h-12 w-auto object-contain"
@@ -226,24 +219,28 @@ const Home = () => {
           </div>
         </header>
 
-        {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 font-sans">
           
-          {/* --- LEFT COLUMN: Attendance Status Widget --- */}
           <div className="md:col-span-2 bg-gradient-to-r from-[#3e6268] to-slate-700 rounded-3xl p-8 text-white shadow-xl flex flex-col justify-between relative overflow-hidden group min-h-[340px]">
             
-            {/* Top Section: Date & Status Badge */}
             <div className="relative z-10 mb-6">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-teal-200 font-medium tracking-wide uppercase text-xs">
                     Today's Activity
                   </p>
+                  
+                  {/* 4. Correctly formatted Date and Time using Asia/Phnom_Penh */}
                   <p className="text-2xl font-semibold mt-1">
                     {formatDate(currentTime)}
                   </p>
                   <p className="text-teal-100 opacity-80 text-sm font-medium mt-1">
-                    {currentTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' })}
+                    {currentTime.toLocaleTimeString("en-US", { 
+                        hour: '2-digit', 
+                        minute: '2-digit', 
+                        hour12: true, 
+                        timeZone: 'Asia/Phnom_Penh' // Fixed: Changed from UTC to Phnom_Penh
+                    })}
                   </p>
                 </div>
                 <div
@@ -258,10 +255,8 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Middle Section: Check In / Check Out Grid */}
             <div className="grid grid-cols-2 gap-8 relative z-10 mb-8">
               
-              {/* Check In Time */}
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-teal-200 mb-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -271,13 +266,11 @@ const Home = () => {
                     Check In
                   </span>
                 </div>
-                {/* Dynamically styled Time */}
                 <h3 className={`text-3xl font-bold text-white ${checkInTime === "--:--" ? "opacity-50" : "opacity-100"}`}>
                   {checkInTime}
                 </h3>
               </div>
 
-              {/* Check Out Time */}
               <div className="flex flex-col pl-8 border-l border-teal-500/30">
                 <div className="flex items-center gap-2 text-teal-200 mb-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,14 +280,12 @@ const Home = () => {
                     Check Out
                   </span>
                 </div>
-                {/* Dynamically styled Time */}
                 <h3 className={`text-3xl font-bold text-white ${checkOutTime === "--:--" ? "opacity-50" : "opacity-100"}`}>
                   {checkOutTime}
                 </h3>
               </div>
             </div>
 
-            {/* Bottom Section: Full Width Button */}
             <div className="relative z-10 mt-auto">
               <button
                 onClick={() => navigate("/AttendanceScanner")}
@@ -308,9 +299,7 @@ const Home = () => {
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: Stats Cards --- */}
           <div className="flex flex-col gap-4">
-            {/* Present Card */}
             <div onClick={() => navigate("/records")} className="bg-emerald-50/80 p-5 rounded-3xl border border-emerald-100 flex items-center justify-between hover:bg-emerald-100/80 transition-colors h-full cursor-pointer">
               <div>
                 <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider">Present</p>
@@ -321,7 +310,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Late Card */}
             <div onClick={() => navigate("/records")} className="bg-amber-50/80 p-5 rounded-3xl border border-amber-100 flex items-center justify-between hover:bg-amber-100/80 transition-colors h-full cursor-pointer">
               <div>
                 <p className="text-xs text-amber-600 font-bold uppercase tracking-wider">Late Arrival</p>
@@ -332,7 +320,6 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Early Card */}
             <div onClick={() => navigate("/records")} className="bg-blue-50/80 p-5 rounded-3xl border border-blue-100 flex items-center justify-between hover:bg-blue-100/80 transition-colors h-full cursor-pointer">
               <div>
                 <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">Early</p>

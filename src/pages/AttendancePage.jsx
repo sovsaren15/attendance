@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Search, Calendar, User, Clock } from 'lucide-react'
+import { dashboardAPI } from '../services/api'
 
 const AttendancePage = () => {
   const [allRecords, setAllRecords] = useState([])
@@ -9,31 +10,17 @@ const AttendancePage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('all')
 
-  const determineTimeStatus = (checkInTime) => {
-    if (!checkInTime) return "N/A"
-    const date = new Date(checkInTime)
-    const hour = date.getHours()
-    const minute = date.getMinutes()
-    return hour < 9 || (hour === 9 && minute <= 15) ? "On Time" : "Late"
-  }
-
   useEffect(() => {
     const fetchAllAttendance = async () => {
       try {
-        const token = localStorage.getItem("authToken")
-        const response = await fetch("http://localhost:5000/admin/attendance-history", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        const result = await response.json()
-        if (response.ok && result.data) {
+        const result = await dashboardAPI.getAllAttendanceHistory()
+        if (result.data) {
           const mappedData = result.data.map((record) => ({
             id: record.id,
             employeeName: record.employees ? `${record.employees.first_name || ''} ${record.employees.last_name || ''}`.trim() : "Unknown",
             checkIn: record.check_in_time,
             checkOut: record.check_out_time,
-            timeStatus: determineTimeStatus(record.check_in_time),
+            timeStatus: record.status_time || "N/A",
             status: record.status,
           }))
           setAllRecords(mappedData)

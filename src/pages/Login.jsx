@@ -25,7 +25,7 @@ const Login = () => {
         if (response.employee?.is_admin) {
           navigate('/dashboard')
         } else {
-          navigate('/AttendanceScanner')
+          navigate('/home')
         }
       } else {
         // Handle cases where the API response is successful but doesn't contain a token
